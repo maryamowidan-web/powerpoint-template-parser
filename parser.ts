@@ -1,33 +1,64 @@
-// Interface defining the structure of a PowerPoint Slide
-export interface SlideContent {
+// Interfaces defining structured PowerPoint Slide elements
+export type SlideType = 'TITLE' | 'BULLET_POINTS' | 'TWO_COLUMN' | 'QUOTE';
+
+export interface SlideElement {
+  id: string;
+  type: SlideType;
   title: string;
-  bulletPoints: string[];
-  themeColor?: string;
+  subtitle?: string;
+  content: string[];
+  notes?: string;
+  backgroundColor?: string;
+}
+
+export interface Presentation {
+  meta: {
+    topic: string;
+    generatedAt: string;
+    totalSlides: number;
+    author: string;
+  };
+  slides: SlideElement[];
 }
 
 /**
- * Parses raw AI text output into a structured PowerPoint slide object
+ * Advanced AI Response Parser for PowerPoint Add-ins
+ * Parses raw text outputs from LLM APIs (OpenAI/Claude) into validated Office.js presentation objects.
  */
-export function parseAIToSlide(rawText: string): SlideContent {
-  const lines = rawText.split('\n').filter(line => line.trim() !== '');
-  
-  // Extract first line as Title, rest as Bullet Points
-  const title = lines[0] ? lines[0].replace(/^#+\s*/, '') : 'Untitled Slide';
-  const bulletPoints = lines.slice(1).map(line => line.replace(/^[-*•]\s*/, '').trim());
+export class PowerPointAIParser {
+  private defaultThemeColor: string;
 
-  return {
-    title,
-    bulletPoints: bulletPoints.length > 0 ? bulletPoints : ['No content provided.'],
-    themeColor: '#0078D4' // Default Microsoft Office Blue
-  };
-}
+  constructor(defaultThemeColor: string = '#0078D4') {
+    this.defaultThemeColor = defaultThemeColor;
+  }
 
-// Example usage and simulation
-const samplePromptResult = `AI in Modern Presentations
-- Automates slide creation from text
-- Enhances visual consistency
-- Saves time for users`;
+  /**
+   * Converts markdown-style LLM output into a structured presentation model
+   */
+  public parseMarkdownToPresentation(topic: string, rawText: string): Presentation {
+    if (!rawText || rawText.trim().length === 0) {
+      throw new Error("Invalid AI payload: Raw text content is empty.");
+    }
 
-const parsedSlide = parseAIToSlide(samplePromptResult);
-console.log("Generated Slide Object:", JSON.stringify(parsedSlide, null, 2));
+    const rawBlocks = rawText.split(/(?=^#\s+|^##\s+)/m);
+    const slides: SlideElement[] = [];
+
+    rawBlocks.forEach((block, index) => {
+      const trimmed = block.trim();
+      if (!trimmed) return;
+
+      const lines = trimmed.split('\n').filter(l => l.trim().length > 0);
+      const headerLine = lines[0] || '';
+      
+      const cleanTitle = headerLine.replace(/^#+\s*/, '').trim();
+      const bodyLines = lines.slice(1);
+
+      const content: string[] = [];
+      let subtitle: string | undefined = undefined;
+
+      bodyLines.forEach(line => {
+        const lineText = line.trim();
+        if (lineText.startsWith('-') || lineText.startsWith('*') || lineText.startsWith('•')) {
+          content.push
+
 
